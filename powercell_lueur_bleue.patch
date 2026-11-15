@@ -1,0 +1,39 @@
+diff --git a/app/src/main/java/com/example/ghbprontoncharge/overlay/ProtonPackHybridView.kt b/app/src/main/java/com/example/ghbprontoncharge/overlay/ProtonPackHybridView.kt
+old mode 100755
+new mode 100644
+index 73e39f9..f72ac2a
+--- a/app/src/main/java/com/example/ghbprontoncharge/overlay/ProtonPackHybridView.kt
++++ b/app/src/main/java/com/example/ghbprontoncharge/overlay/ProtonPackHybridView.kt
+@@ -6,6 +6,7 @@ import android.content.Context
+ import android.content.Intent
+ import android.content.IntentFilter
+ import android.graphics.Bitmap
++import android.graphics.BlurMaskFilter
+ import android.graphics.BitmapFactory
+ import android.graphics.Canvas
+ import android.graphics.Color
+@@ -178,9 +179,9 @@ class ProtonPackHybridView @JvmOverloads constructor(
+     }
+ 
+     private val powerCellHaloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+-        color = Color.parseColor("#00FFFF")
+-        style = Paint.Style.STROKE
+-        strokeWidth = 3f * density
++        color = Color.parseColor("#4B4BFF")
++        style = Paint.Style.FILL
++        maskFilter = BlurMaskFilter(10f * density, BlurMaskFilter.Blur.OUTER)
+     }
+ 
+     // Paints Texte zone du bas
+@@ -471,6 +472,11 @@ class ProtonPackHybridView @JvmOverloads constructor(
+         }
+ 
+         // 4. POWER CELL - EFFET CHENILLARD (Ghostbusters 1984)
++        // B. Lueur bleue douce et pulsée (dessinée AVANT le masque : seul le flou déborde autour)
++        val haloAlpha = 0.45f + 0.30f * (0.5f + 0.5f * sin((elapsedSec * 2f * Math.PI / 2.0).toFloat()))
++        powerCellHaloPaint.alpha = (255 * haloAlpha).toInt().coerceIn(0, 255)
++        canvas.drawRoundRect(powerCellHaloRect, 4f * density, 4f * density, powerCellHaloPaint)
++
+         // A. Masque sombre pour recouvrir les LED statiques de la photo
+         canvas.drawRect(powerCellRect, powerCellMaskPaint)
+ 

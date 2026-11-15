@@ -1,0 +1,16 @@
+diff --git a/app/src/main/java/com/example/ghbprontoncharge/overlay/ProtonPackHybridView.kt b/app/src/main/java/com/example/ghbprontoncharge/overlay/ProtonPackHybridView.kt
+index 170c89d..a80c6fd 100755
+--- a/app/src/main/java/com/example/ghbprontoncharge/overlay/ProtonPackHybridView.kt
++++ b/app/src/main/java/com/example/ghbprontoncharge/overlay/ProtonPackHybridView.kt
+@@ -473,11 +473,6 @@ class ProtonPackHybridView @JvmOverloads constructor(
+         // A. Masque sombre pour recouvrir les LED statiques de la photo
+         canvas.drawRect(powerCellRect, powerCellMaskPaint)
+ 
+-        // B. Halo cyan pulsé (alpha 0.6 -> 1.0, période 2s)
+-        val haloAlpha = 0.6f + 0.4f * (0.5f + 0.5f * sin((elapsedSec * 2f * Math.PI / 2.0).toFloat()))
+-        powerCellHaloPaint.alpha = (255 * haloAlpha).toInt().coerceIn(0, 255)
+-        canvas.drawRoundRect(powerCellHaloRect, 4f * density, 4f * density, powerCellHaloPaint)
+-
+         // C. Chenillard des segments (0 -> segment cible de bas en haut, puis pause 80ms)
+         val totalSegments = PackLayout.POWER_CELL_NUM_SEGMENTS
+         val targetSegments = ceil(batteryLevel * totalSegments / 100.0).toInt().coerceIn(1, totalSegments)

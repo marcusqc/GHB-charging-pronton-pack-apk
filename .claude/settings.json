@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "ANDROID_HOME": "C:\\Users\\user\\AppData\\Local\\Android\\Sdk"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew:*)",
+      "Bash(./gradlew.bat:*)",
+      "Bash(adb devices:*)",
+      "Bash(adb install:*)",
+      "Bash(adb logcat:*)",
+      "Bash(adb shell am:*)",
+      "Bash(adb shell dumpsys:*)",
+      "Bash(adb shell getprop:*)",
+      "Bash(adb shell pm list:*)",
+      "Bash(adb shell pm grant:*)",
+      "Bash(adb shell input:*)",
+      "Bash(adb shell screencap:*)",
+      "Bash(adb shell pidof:*)",
+      "Bash(adb pull:*)",
+      "mcp__mobile-mcp"
+    ],
+    "ask": [
+      "Bash(adb uninstall:*)",
+      "Bash(adb reboot:*)",
+      "Bash(adb shell pm clear:*)",
+      "Bash(adb push:*)"
+    ],
+    "deny": [
+      "Bash(adb shell rm:*)",
+      "Bash(adb shell pm uninstall:*)",
+      "Bash(adb shell pm disable-user:*)",
+      "Bash(adb shell settings put:*)"
+    ]
+  },
+  "enabledMcpjsonServers": ["mobile-mcp"]
+}

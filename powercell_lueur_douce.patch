@@ -1,0 +1,43 @@
+diff --git a/app/src/main/java/com/example/ghbprontoncharge/overlay/ProtonPackHybridView.kt b/app/src/main/java/com/example/ghbprontoncharge/overlay/ProtonPackHybridView.kt
+index 170c89d..61a6ceb 100755
+--- a/app/src/main/java/com/example/ghbprontoncharge/overlay/ProtonPackHybridView.kt
++++ b/app/src/main/java/com/example/ghbprontoncharge/overlay/ProtonPackHybridView.kt
+@@ -6,6 +6,7 @@ import android.content.Context
+ import android.content.Intent
+ import android.content.IntentFilter
+ import android.graphics.Bitmap
++import android.graphics.BlurMaskFilter
+ import android.graphics.BitmapFactory
+ import android.graphics.Canvas
+ import android.graphics.Color
+@@ -178,8 +179,8 @@ class ProtonPackHybridView @JvmOverloads constructor(
+ 
+     private val powerCellHaloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+         color = Color.parseColor("#00FFFF")
+-        style = Paint.Style.STROKE
+-        strokeWidth = 3f * density
++        style = Paint.Style.FILL
++        maskFilter = BlurMaskFilter(10f * density, BlurMaskFilter.Blur.OUTER)
+     }
+ 
+     // Paints Texte zone du bas
+@@ -470,14 +471,14 @@ class ProtonPackHybridView @JvmOverloads constructor(
+         }
+ 
+         // 4. POWER CELL - EFFET CHENILLARD (Ghostbusters 1984)
+-        // A. Masque sombre pour recouvrir les LED statiques de la photo
+-        canvas.drawRect(powerCellRect, powerCellMaskPaint)
+-
+-        // B. Halo cyan pulsé (alpha 0.6 -> 1.0, période 2s)
+-        val haloAlpha = 0.6f + 0.4f * (0.5f + 0.5f * sin((elapsedSec * 2f * Math.PI / 2.0).toFloat()))
++        // B. Lueur cyan douce et pulsée (dessinée AVANT le masque : seul le flou déborde autour)
++        val haloAlpha = 0.35f + 0.25f * (0.5f + 0.5f * sin((elapsedSec * 2f * Math.PI / 2.0).toFloat()))
+         powerCellHaloPaint.alpha = (255 * haloAlpha).toInt().coerceIn(0, 255)
+         canvas.drawRoundRect(powerCellHaloRect, 4f * density, 4f * density, powerCellHaloPaint)
+ 
++        // A. Masque sombre pour recouvrir les LED statiques de la photo
++        canvas.drawRect(powerCellRect, powerCellMaskPaint)
++
+         // C. Chenillard des segments (0 -> segment cible de bas en haut, puis pause 80ms)
+         val totalSegments = PackLayout.POWER_CELL_NUM_SEGMENTS
+         val targetSegments = ceil(batteryLevel * totalSegments / 100.0).toInt().coerceIn(1, totalSegments)
