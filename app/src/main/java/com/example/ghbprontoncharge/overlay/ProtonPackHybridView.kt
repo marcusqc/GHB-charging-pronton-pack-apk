@@ -98,8 +98,12 @@ class ProtonPackHybridView @JvmOverloads constructor(
         null
     }
 
-    // Lecture unique du niveau de batterie
-    private val batteryLevel: Int = getBatteryLevel(context)
+    // Niveau de batterie, relu chaque seconde dans onDraw (avant : lu une seule fois -> restait fige)
+    private var batteryLevel: Int = getBatteryLevel(context)
+    private var lastInfoUpdateMs = 0L
+
+    // Ligne d'info (GeV + estimation), construite 1 fois/s pour ne rien allouer dans onDraw
+    private var infoLine: String? = null
 
     // Calculs de courant de charge (mode CHARGE_RATE)
     private var lastCurrentReadTimeMs = 0L
@@ -426,12 +430,15 @@ class ProtonPackHybridView @JvmOverloads constructor(
         val elapsedMs = nowMs - startTimeMs
         val elapsedSec = elapsedMs / 1000f
 
-        // Mise à jour périodique de la mesure de courant (toutes les 1000 ms)
-        if (PackLayout.POWER_CELL_MODE == PowerCellMode.CHARGE_RATE) {
-            if (nowMs - lastCurrentReadTimeMs >= 1000L || lastCurrentReadTimeMs == 0L) {
+        // Mise à jour périodique (toutes les 1000 ms) : niveau, courant, estimation
+        if (nowMs - lastInfoUpdateMs >= 1000L || lastInfoUpdateMs == 0L) {
+            lastInfoUpdateMs = nowMs
+            batteryLevel = getBatteryLevel(context)
+            if (PackLayout.POWER_CELL_MODE == PowerCellMode.CHARGE_RATE) {
                 lastCurrentReadTimeMs = nowMs
                 updateCurrentReading()
             }
+            infoLine = buildInfoLine()
         }
 
         // 1. Fond noir
@@ -534,14 +541,12 @@ class ProtonPackHybridView @JvmOverloads constructor(
 
         // 5. TEXTE DANS LA ZONE DU BAS (~18 %)
         val centerX = totalW / 2f
-        val isCurrentValid = PackLayout.POWER_CELL_MODE == PowerCellMode.CHARGE_RATE && smoothedCurrentMa > 0
+        val line = infoLine
 
-        if (isCurrentValid) {
-            val gevValue = smoothedCurrentMa / 100.0
-            val gevFormatted = String.format(Locale.US, "⚡ %.2f GeV", gevValue)
+        if (line != null) {
             canvas.drawText("$batteryLevel%", centerX, totalH * 0.85f, batteryTextPaint)
             canvas.drawText("NUCLEAR POWER CELL", centerX, totalH * 0.89f, subTextPaint)
-            canvas.drawText(gevFormatted, centerX, totalH * 0.925f, currentTextPaint)
+            canvas.drawText(line, centerX, totalH * 0.925f, currentTextPaint)
             canvas.drawText("DON'T CROSS THE STREAMS!", centerX, totalH * 0.965f, warningTextPaint)
         } else {
             canvas.drawText("$batteryLevel%", centerX, totalH * 0.86f, batteryTextPaint)
@@ -583,6 +588,43 @@ class ProtonPackHybridView @JvmOverloads constructor(
                 debugTextPaint
             )
         }
+    }
+
+    /** "⚡ 1.45 GeV  ·  PLEIN DANS 1 h 05" ; chaque partie n'apparait que si elle est connue. */
+    private fun buildInfoLine(): String? {
+        val gev = if (PackLayout.POWER_CELL_MODE == PowerCellMode.CHARGE_RATE && smoothedCurrentMa > 0) {
+            String.format(Locale.US, "⚡ %.2f GeV", smoothedCurrentMa / 100.0)
+        } else null
+
+        val minutes = estimateMinutesToFull()
+        val eta = when {
+            batteryLevel >= 100 -> "CHARGE COMPLÈTE"
+            minutes <= 0 -> null
+            minutes < 60 -> "PLEIN DANS $minutes MIN"
+            else -> String.format(Locale.US, "PLEIN DANS %d h %02d", minutes / 60, minutes % 60)
+        }
+
+        return listOfNotNull(gev, eta).takeIf { it.isNotEmpty() }?.joinToString("  ·  ")
+    }
+
+    /** Minutes avant 100 %, ou -1 si inconnu. */
+    private fun estimateMinutesToFull(): Int {
+        if (batteryLevel >= 100) return 0
+        val bm = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager ?: return -1
+
+        // 1. Estimation officielle d'Android (tient compte du ralentissement en fin de charge)
+        val ms = try { bm.computeChargeTimeRemaining() } catch (e: Exception) { -1L }
+        if (ms > 0) return ceil(ms / 60000.0).toInt()
+
+        // 2. Repli : capacite restante / courant mesure
+        val counterUah = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER)
+        if (smoothedCurrentMa > 0 && counterUah > 0 && batteryLevel > 0) {
+            val currentMah = counterUah / 1000.0
+            val fullMah = currentMah * 100.0 / batteryLevel
+            val remainingMah = fullMah - currentMah
+            if (remainingMah > 0) return ceil(remainingMah / smoothedCurrentMa * 60.0).toInt()
+        }
+        return -1
     }
 
     fun releaseResources() {
